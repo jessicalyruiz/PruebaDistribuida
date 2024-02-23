@@ -1,0 +1,50 @@
+#docker-compose up -d
+version: '3'
+services:
+  proxy:
+    image: traefik
+    command: --api.insecure=true --providers.docker
+    ports:
+      - "8080:8080"
+      - "8081:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  app-authors-service:
+    image: jessicalyruiz/app-clientes
+    deploy:
+      replicas: 3
+    expose:
+      - 8080
+    labels:
+      - "traefik.http.routers.clientes.rule=PathPrefix(`/app-clientes`)"
+      - "traefik.http.middlewares.clientes.stripprefix.prefixes=/app-clientes"
+      - "traefik.http.routers.clientes.middlewares=clientes"
+    #ports:
+    #  - "8080:8080" #HOST:CONTENEDOR
+  app-productos-service:
+    image: jessicalyruiz/app-productos
+    deploy:
+      replicas: 3
+    expose:
+      - 8080
+    labels:
+      - "traefik.http.routers.productos.rule=PathPrefix(`/app-productos`)"
+      - "traefik.http.middlewares.productos.stripprefix.prefixes=/app-productos"
+      - "traefik.http.routers.productos.middlewares=productos"
+    #ports:
+    #  - "8080:8080" #HOST:CONTENEDOR
+  app-books-service:
+    image: jessicalyruiz/app-compras
+    environment:
+      APP_CLIENTES_URL: http://proxy/app-clientes
+      APP_PRODUCTOS_URL: http://proxy/app-productos
+    deploy:
+      replicas: 2
+    expose:
+      - 8080
+    labels:
+      - "traefik.http.routers.compras.rule=PathPrefix(`/app-compras`)"
+      - "traefik.http.middlewares.compras.stripprefix.prefixes=/app-compras"
+      - "traefik.http.routers.compras.middlewares=compras"
+    #ports:
+    #  - "9090:8080" #HOST:CONTENEDOR
